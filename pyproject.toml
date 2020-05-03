@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "pygmh"
+version = "0.1.0"
+description = ""
+authors = []
+readme = "README.md"
+repository = "https://github.com/FintelmannLabDevelopmentTeam/pygmh/"
+documentation = "https://github.com/FintelmannLabDevelopmentTeam/pygmh/doc/"
+keywords = [
+    "Medical Imaging",
+    "Radiology",
+    "MRI",
+    "CT",
+]
+
+[tool.poetry.dependencies]
+jsonschema = "^3.2"
+python = "^3.7"
+numpy = "^1.18"
+click = "^7.1.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.4.1"
+
+[tool.poetry.scripts]
+info = "pygmh.cli.info:main"
+
+[tool.poetry.urls]
+issues = "https://github.com/FintelmannLabDevelopmentTeam/pygmh/issues"

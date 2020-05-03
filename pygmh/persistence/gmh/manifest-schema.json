@@ -1,0 +1,94 @@
+{
+  "definitions": {
+    "color": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "integer"
+      }
+    },
+    "vector": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    }
+  },
+
+  "type": "object",
+  "required": [
+    "meta_data",
+    "segmentations",
+    "slices",
+    "voxel_size",
+    "voxel_spacing"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "meta_data": {
+      "type": "object"
+    },
+    "segmentations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "color",
+          "identifier",
+          "meta_data"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "$ref": "#/definitions/color"
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "meta_data": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "slices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "identifier",
+          "index",
+          "meta_data"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "identifier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "index": {
+            "type": "integer"
+          },
+          "meta_data": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "voxel_size": {
+      "oneOf": [
+        {"$ref": "#/definitions/vector"},
+        {"type": "null"}
+      ]
+    },
+    "voxel_spacing": {
+      "oneOf": [
+        {"$ref": "#/definitions/vector"},
+        {"type": "null"}
+      ]
+    }
+  }
+}
