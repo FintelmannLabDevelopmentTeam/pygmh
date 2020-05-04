@@ -20,6 +20,7 @@ def main(path: str, cached: bool, allow_system_tar: bool):
     click.echo(f"Path: {path}")
     click.echo(f"Size: {format_byte_count(os.stat(path).st_size)}")
     click.echo(f"Compressed: {'Yes' if adapter.is_compressed(path) else 'No'}")
+    click.echo()
     click.echo(f"Identifier: {image.get_identifier()}")
     click.echo(f"Dimensions: {image.get_image_data().shape}")
 
