@@ -34,7 +34,7 @@ class LazyImage(Image):
     ):
         assert isinstance(image_data_provider, IImageDataLoader)
 
-        super().__init__(None, identifier, meta_data, voxel_size, voxel_spacing)
+        super().__init__(identifier=identifier, meta_data=meta_data, voxel_size=voxel_size, voxel_spacing=voxel_spacing)
 
         self._image_data_provider = image_data_provider
 
@@ -59,7 +59,7 @@ class LazyImageSegmentation(ImageSegmentation):
     ):
         assert isinstance(segmentation_data_loader, IImageSegmentationDataLoader)
 
-        super().__init__(image, identifier, None, mask_slug, color)
+        super().__init__(image, identifier, mask_slug, color=color)
 
         self._segmentation_data_loader = segmentation_data_loader
 

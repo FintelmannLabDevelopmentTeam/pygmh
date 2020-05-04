@@ -85,7 +85,7 @@ def test_write_and_read(tmp_path):
 
     data_volume = (np.random.rand(10, 15, 20) * pow(2, 16)).astype(np.int32)
 
-    image = Image(data_volume, identifier="test")
+    image = Image(image_data=data_volume, identifier="test")
 
     adapter = Adapter()
     path = tmp_path / f"{image.get_identifier()}.gmh"

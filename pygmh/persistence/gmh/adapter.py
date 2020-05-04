@@ -305,7 +305,7 @@ class Adapter(IAdapter):
             slice_identifier = slice_info["identifier"]
             slice_meta_data = MetaData(slice_info["meta_data"])
 
-            image_slice = ImageSlice(image, slice_index, slice_identifier)
+            image_slice = ImageSlice(image, slice_index, identifier=slice_identifier)
             image_slice.get_meta_data().update(slice_meta_data)
 
             image.register_slice(

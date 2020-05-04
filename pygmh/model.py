@@ -38,7 +38,7 @@ class ImageSegmentation:
     Args:
         image (Image): Instance of the image, the segmentation belongs to.
         identifier (str): A string-identifier for the segmentation. Has to be unique within the image instance.
-        mask (np.ndarray): Boolean mask, defining the segmented area within the image.
+        mask (Optional[np.ndarray]): Boolean mask, defining the segmented area within the image.
         mask_slug (str): Identifies the mask.
         color (Optional[Color]): Default color to be used for rendering.
     """
@@ -47,8 +47,9 @@ class ImageSegmentation:
         self,
         image,  # type:Image
         identifier: str,
-        mask: np.ndarray,
         mask_slug: str,
+        *,
+        mask: Optional[np.ndarray] = None,
         color: Optional[Color] = None,
     ):
         assert isinstance(image, Image)
@@ -86,23 +87,27 @@ class ImageSegmentation:
         """Gets the meta-data container of the segmentation."""
         return self._meta_data
 
-    def get_mask(self) -> np.ndarray:
+    def get_mask(self) -> Optional[np.ndarray]:
         """Gets the boolean mask of the segmentation."""
         return self._mask
 
-    def set_mask(self, mask: np.ndarray) -> None:
+    def set_mask(self, mask: Optional[np.ndarray]) -> None:
 
-        assert isinstance(mask, np.ndarray), "Given argument is not an np.ndarray"
-        assert np.issubdtype(mask.dtype, np.bool_), "Mask has to be boolean. Given: " + str(mask.dtype)
-        assert mask.shape == self._image.get_image_data().shape,\
-            "Mask is not the same shape as the image volume. Required: {}, given: {}".format(
-                str(self._image.get_image_data().shape), str(mask.shape)
-            )
+        if mask is not None:
+
+            assert isinstance(mask, np.ndarray), "Given argument is not an np.ndarray"
+            assert np.issubdtype(mask.dtype, np.bool_), "Mask has to be boolean. Given: " + str(mask.dtype)
+            assert mask.shape == self._image.get_image_data().shape,\
+                "Mask is not the same shape as the image volume. Required: {}, given: {}".format(
+                    str(self._image.get_image_data().shape), str(mask.shape)
+                )
 
         self._mask = mask
 
-        # prevent after-the-fact modification of the mask
-        self._mask.flags.writeable = False
+        if self._mask is not None:
+
+            # prevent after-the-fact modification of the mask
+            self._mask.flags.writeable = False
 
     def get_mask_slug(self) -> str:
         """Gets the mask slug."""
@@ -133,6 +138,12 @@ class ImageSegmentation:
             np.array: Image data with substituted voxel values.
         """
 
+        if self._image.get_image_data() is None:
+            raise Exception()
+
+        if self.get_mask() is None:
+            raise Exception()
+
         data = np.copy(self._image.get_image_data())
         mask = self.get_mask()
 
@@ -146,6 +157,9 @@ class ImageSegmentation:
 
     def get_bounding_box_definition(self) -> Tuple[Vector3, Vector3]:
         """Gets the tuples of indices that define a diagonal vector which further defines the bounding box"""
+
+        if self.get_mask() is None:
+            raise Exception()
 
         non_zero = np.nonzero(self.get_mask())
 
@@ -168,9 +182,12 @@ class ImageSegmentation:
     def get_segmented_slice_indices(self) -> Set[int]:
         """Returns the set of slice indices that the segmentation mask has"""
 
+        if self.get_mask() is None:
+            raise Exception()
+
         indices: Set[int] = set()
 
-        for index in np.nonzero(self._mask)[0]:
+        for index in np.nonzero(self.get_mask())[0]:
             indices.add(int(index))
 
         return indices
@@ -191,6 +208,7 @@ class ImageSlice:
         self,
         image,  # type:Image
         slice_index: int,
+        *,
         identifier: Optional[str] = None,
     ):
         assert isinstance(image, Image)
@@ -225,6 +243,10 @@ class ImageSlice:
 
     def get_slice_image_data(self) -> np.ndarray:
         """Gets the raw slice image data."""
+        
+        if self._image.get_image_data() is None:
+            raise Exception()
+
         return self._image.get_image_data()[self._slice_index]
 
 
@@ -240,16 +262,19 @@ class Image:
     (see also: http://teem.sourceforge.net/nrrd/format.html#space)
 
     Args:
-        image_data (np.ndarray): (Volumetric) image data.
+        image_data (Optional[np.ndarray]): (Volumetric) image data.
         identifier (Optional[str]): An optional identification string for the image.
-        meta_data (MetaData): Container for image-specific meta-data.
+        meta_data (Optional[MetaData]): Container for image-specific meta-data.
         voxel_size (Optional[Vector3]): Size of each individual voxel within the image volume in mm.
         voxel_spacing (Optional[Vector3]): Spacing between the centers of neighbouring voxels in mm.
     """
 
     def __init__(
         self,
-        image_data: np.ndarray,
+        *,
+
+        image_data: Optional[np.ndarray] = None,
+
         identifier: Optional[str] = None,
         meta_data: Optional[MetaData] = None,
 
@@ -288,7 +313,7 @@ class Image:
         """Gets the container for the meta-data attached to the image."""
         return self._meta_data
 
-    def get_image_data(self) -> np.ndarray:
+    def get_image_data(self) -> Optional[np.ndarray]:
         """Gets the raw image data."""
         return self._image_data
 
@@ -355,7 +380,7 @@ class Image:
     def add_slice(self, slice_index: int, slice_identifier: Optional[str] = None) -> ImageSlice:
         """Adds a slice to the image."""
         return self.register_slice(
-            ImageSlice(self, slice_index, slice_identifier)
+            ImageSlice(self, slice_index, identifier=slice_identifier)
         )
 
     def get_or_add_slice(self, slice_index: int, slice_identifier: Optional[str] = None) -> ImageSlice:
@@ -372,7 +397,7 @@ class Image:
         # create new slice
         else:
             image_slice = self.register_slice(
-                ImageSlice(self, slice_index, slice_identifier)
+                ImageSlice(self, slice_index, identifier=slice_identifier)
             )
 
         return image_slice
@@ -424,7 +449,7 @@ class Image:
     def add_segmentation(self, identifier: str, mask: np.ndarray, color: Optional[Color] = None) -> ImageSegmentation:
         """Adds a segmentation with the given mask under the given identifier."""
 
-        segmentation = ImageSegmentation(self, identifier, mask, self.generate_segmentation_slug(), color)
+        segmentation = ImageSegmentation(self, identifier, self.generate_segmentation_slug(), mask=mask, color=color)
 
         return self.register_segmentation(segmentation)
 
