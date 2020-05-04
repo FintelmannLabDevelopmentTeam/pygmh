@@ -7,11 +7,12 @@ from pygmh.persistence.gmh.adapter import Adapter
 @click.command()
 @click.argument("path", type=click.Path(exists=True))
 @click.option("--cached/--not-cached", default=False)
-def main(path: str, cached: bool):
+@click.option("--allow-system-tar/--disallow-system-tar", default=True)
+def main(path: str, cached: bool, allow_system_tar: bool):
 
     adapter = Adapter()
 
-    image = adapter.read(path, cached=cached, allow_system_tar=False)
+    image = adapter.read(path, cached=cached, allow_system_tar=allow_system_tar)
 
     click.echo(f"Path: {path}")
     click.echo(f"Compressed: {'Yes' if adapter.is_compressed(path) else 'No'}")
