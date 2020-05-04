@@ -32,12 +32,15 @@ class AbstractDataLoader(IImageDataLoader, IImageSegmentDataLoader):
         self._manifest = manifest
 
     def get_manifest(self) -> dict:
+
         return self._manifest
 
     def load_image_data(self) -> np.ndarray:
+
         raise NotImplementedError()
 
     def load_segment_mask(self, slug: str) -> np.ndarray:
+
         raise NotImplementedError()
 
     def _get_image_data_dtype(self):
@@ -47,8 +50,11 @@ class AbstractDataLoader(IImageDataLoader, IImageSegmentDataLoader):
     def _get_numpy_dtype_by_precision(self, precision: int):
 
         if precision == 4:
+
             return np.int32
+
         else:
+
             raise Exception("Unknown precision: {}".format(precision))
 
 
@@ -122,9 +128,13 @@ class FilesystemDataLoader(AbstractDataLoader):
     def get_temporary_directory_path() -> str:
 
         while True:
+
             path = os.path.join(tempfile.gettempdir(), generate_random_string())
+
             if not os.path.exists(path):
+
                 os.mkdir(path)
+
                 return path
 
 
@@ -168,6 +178,7 @@ class CachedFilesystemDataLoader(FilesystemDataLoader):
 class Adapter(IAdapter):
 
     def __init__(self):
+
         self._logger = logging.getLogger(__name__)
         self._manifest_validation_schema: Optional[str] = None
 
@@ -420,7 +431,10 @@ class Adapter(IAdapter):
         jsonschema.validate(manifest, self._get_manifest_validation_schema())
 
     def _get_manifest_validation_schema(self) -> str:
+
         if self._manifest_validation_schema is None:
+
             with open(os.path.dirname(__file__) + "/manifest-schema.json", "r") as file_handle:
                 self._manifest_validation_schema = json.load(file_handle)
+
         return self._manifest_validation_schema

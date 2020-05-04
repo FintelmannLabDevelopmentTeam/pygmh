@@ -74,21 +74,26 @@ class ImageSegment:
 
     def get_identifier(self) -> str:
         """Gets the identifier of the segment."""
+
         return self._identifier
 
     def set_identifier(self, identifier: str) -> None:
         """Sets the identifier of the segment."""
+
         assert Image.is_valid_identifier(identifier), "Invalid segment identifier: " + identifier
         assert not self._image.has_segment(identifier),\
             "There is already a segment attached to the image with the given identifier: " + identifier
+
         self._identifier = identifier
 
     def get_meta_data(self) -> MetaData:
         """Gets the meta-data container of the segment."""
+
         return self._meta_data
 
     def get_mask(self) -> Optional[np.ndarray]:
         """Gets the boolean mask of the segment."""
+
         return self._mask
 
     def set_mask(self, mask: Optional[np.ndarray]) -> None:
@@ -111,15 +116,19 @@ class ImageSegment:
 
     def get_slug(self) -> str:
         """Gets the mask slug."""
+
         return self._slug
 
     def get_color(self) -> Optional[Color]:
         """Gets the default segment color as RGB tuple."""
+
         return self._color
 
     def set_color(self, color: Optional[Color]) -> None:
         """Sets the default segment color."""
+
         assert color is None or (len(color) == 3 and all(0 <= component < 256 for component in color))
+
         self._color = color
 
     def get_segmented_image_data(self,
@@ -223,22 +232,27 @@ class ImageSlice:
 
     def get_slice_index(self) -> int:
         """Gets the index of the slice within the image volume."""
+
         return self._slice_index
 
     def get_identifier(self) -> Optional[str]:
         """Gets the identifier of the slice or *None* if no identifier has been defined."""
+
         return self._identifier
 
     def set_identifier(self, identifier: Optional[str]) -> None:
         """Sets the identifier to the given."""
+
         assert identifier is None or Image.is_valid_identifier(identifier),\
             "Invalid slice identifier: " + identifier
         assert identifier is None or not self._image.has_slice(identifier=identifier),\
             "There is already a slice with the given identifier: " + str(identifier)
+
         self._identifier = identifier
 
     def get_meta_data(self) -> MetaData:
         """Gets the meta-data container for the slice."""
+
         return self._meta_data
 
     def get_slice_image_data(self) -> np.ndarray:
@@ -301,40 +315,51 @@ class Image:
 
     def get_identifier(self) -> Optional[str]:
         """Gets a potentially defined identifier."""
+
         return self._identifier
 
     def set_identifier(self, identifier: Optional[str]) -> None:
         """Sets the identifier to the given."""
+
         assert identifier is None or Image.is_valid_identifier(identifier), \
             "Invalid image identifier given: " + identifier
+
         self._identifier = identifier
 
     def get_meta_data(self) -> MetaData:
         """Gets the container for the meta-data attached to the image."""
+
         return self._meta_data
 
     def get_image_data(self) -> Optional[np.ndarray]:
         """Gets the raw image data."""
+
         return self._image_data
 
     def get_voxel_size(self) -> Optional[Vector3]:
         """Gets the potentially defined voxel size."""
+
         return self._voxel_size
 
     def set_voxel_size(self, voxel_size: Optional[Vector3]) -> None:
         """Sets the voxel size."""
+
         assert voxel_size is None or all(component > 0 for component in voxel_size),\
             "Expecting voxel dimensions to be positive"
+
         self._voxel_size = voxel_size
 
     def get_voxel_spacing(self) -> Optional[Vector3]:
         """Gets the potentially defined voxel spacing in all dimensions."""
+
         return self._voxel_spacing
 
     def set_voxel_spacing(self, voxel_spacing: Optional[Vector3]) -> None:
         """Sets the voxel spacing."""
+
         assert voxel_spacing is None or all(component > 0 for component in voxel_spacing),\
             "Expecting voxel spacing to be positive"
+
         self._voxel_spacing = voxel_spacing
 
     def has_slice(self, index: int = None, identifier: str = None) -> bool:
@@ -345,6 +370,7 @@ class Image:
 
         try:
             self.get_slice(identifier=identifier)
+
         except KeyError:
             return False
 
@@ -352,33 +378,42 @@ class Image:
 
     def get_slice(self, index: int = None, identifier: str = None) -> ImageSlice:
         """Gets the slice with the given index or identifier."""
+
         assert (index is None) != (identifier is None), "Either an index or an identifier must be given."
 
         # resolve by index
         if index is not None:
+
             if index not in self._image_slices:
                 raise KeyError("Unknown slice index: {}".format(index))
+
             return self._image_slices[index]
 
         # resolve by identifier
         if identifier is not None:
+
             for image_slice in self._image_slices:
+
                 if image_slice.get_identifier() == identifier:
                     return image_slice
+
             raise KeyError("Unknown slice identifier: {}".format(identifier))
 
         raise Exception()
 
     def get_slices(self) -> Set[ImageSlice]:
         """Returns all slices, registered to the image."""
+
         return set(self._image_slices.values())
 
     def get_ordered_slices(self) -> List[ImageSlice]:
         """Returns all slices, ordered by their slice index."""
+
         return list(self._image_slices.values())
 
     def add_slice(self, slice_index: int, slice_identifier: Optional[str] = None) -> ImageSlice:
         """Adds a slice to the image."""
+
         return self.register_slice(
             ImageSlice(self, slice_index, identifier=slice_identifier)
         )
@@ -396,6 +431,7 @@ class Image:
 
         # create new slice
         else:
+
             image_slice = self.register_slice(
                 ImageSlice(self, slice_index, identifier=slice_identifier)
             )
@@ -416,21 +452,27 @@ class Image:
 
     def remove_slice(self, image_slice: ImageSlice) -> None:
         """Removes the given slice from the image."""
+
         del(self._image_slices[image_slice.get_slice_index()])
 
     def has_segment(self, identifier: str) -> bool:
         """Returns the existence of a segment with the given identifier."""
+
         try:
             self.get_segment(identifier)
+
         except KeyError:
             return False
+
         return True
 
     def get_segment(self, identifier: str) -> ImageSegment:
         """Gets the segment with the given identifier."""
 
         for segment in self._image_segments:
+
             segment: ImageSegment = segment
+
             if segment.get_identifier() == identifier:
                 return segment
 
@@ -438,14 +480,17 @@ class Image:
 
     def get_segments(self) -> Set[ImageSegment]:
         """Gets all attached segment."""
+
         return self._image_segments.copy()
 
     def get_ordered_segments(self) -> List[ImageSegment]:
         """Gets all attached segments, ordered by their order of addition to the image."""
+
         return sorted(list(self.get_segments()), key=lambda x: x._order_index)
 
     def get_segment_count(self) -> int:
         """Returns the number of segments attached to this image."""
+
         return len(self._image_segments)
 
     def add_segment(self, identifier: str, mask: np.ndarray, color: Optional[Color] = None) -> ImageSegment:
@@ -468,18 +513,24 @@ class Image:
 
     def remove_segment(self, image_segment: ImageSegment) -> None:
         """Removes the given segment from the image."""
+
         self._image_segments.remove(image_segment)
 
     def generate_segment_slug(self) -> str:
         """Generates a random slug which identifies the segment mask."""
+
         while True:
+
             slug = generate_random_string()
+
             if not self.has_segment_slug(slug):
                 return slug
 
     def has_segment_slug(self, slug: str) -> bool:
         """Returns existence of segment slug."""
+
         for segment in self.get_segments():
+
             if segment.get_slug() == slug:
                 return True
 
@@ -487,6 +538,7 @@ class Image:
 
     def _set_image_data(self, image_data: np.ndarray) -> None:
         """Protected method to set the image data to simplify sub-classing."""
+
         assert isinstance(image_data, np.ndarray)
         assert np.issubdtype(image_data.dtype, np.int32),\
             "Image data must be of type np.int32. Given: " + str(image_data.dtype)
@@ -499,5 +551,6 @@ class Image:
 
     @staticmethod
     def is_valid_identifier(identifier: str) -> bool:
+
         assert isinstance(identifier, str), "Identifier must be a string"
         return bool(re.compile("^[a-zA-Z0-9-_ ]+$").match(identifier))

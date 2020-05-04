@@ -40,10 +40,13 @@ class LazyLoadedImage(Image):
 
     def get_image_data(self) -> np.ndarray:
         """Override accessor to retrieve image-data if not already loaded."""
+
         if self._image_data is None:
+
             self._set_image_data(
                 self._image_data_provider.load_image_data()
             )
+
         return self._image_data
 
 
@@ -57,6 +60,7 @@ class LazyLoadedImageSegment(ImageSegment):
             identifier: str,
             color: Optional[Color] = None
     ):
+
         assert isinstance(segment_data_loader, IImageSegmentDataLoader)
 
         super().__init__(image, identifier, slug, color=color)
@@ -65,10 +69,13 @@ class LazyLoadedImageSegment(ImageSegment):
 
     def get_mask(self) -> np.ndarray:
         """Override accessor to retrieve mask if not already loaded."""
+
         if self._mask is None:
+
             self.set_mask(
                 self._segment_data_loader.load_segment_mask(
                     self._slug
                 )
             )
+
         return self._mask
