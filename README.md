@@ -1,5 +1,7 @@
 # PyGMH
 
+The *PyGMH* package is the reference implementation of the [*GMH* standard](https://github.com/FintelmannLabDevelopmentTeam/GMH-Spec) in Python.
+
 ## Quickstart
 
 1. Setup environment and dependencies using [python-poetry](https://python-poetry.org/):
