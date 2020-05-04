@@ -3,6 +3,7 @@ import numpy as np
 
 from pygmh.model import Image
 from pygmh.persistence.gmh import Adapter
+from pygmh.persistence.lazy_model import LazyLoadedImage
 from pygmh_test.assets import asset_path
 from pygmh_test.functional.assertions import assert_equal_images
 
@@ -94,3 +95,18 @@ def test_write_and_read(tmp_path):
     image2 = adapter.read(path)
 
     assert_equal_images(image, image2)
+
+
+def test_segment_renaming_before_lazy_load():
+
+    adapter = Adapter()
+
+    image = adapter.read(
+        asset_path("simple_gmh/my-identifier123.gmh")
+    )
+
+    assert isinstance(image, LazyLoadedImage)
+
+    segment = image.get_segment("segment1")
+    segment.set_identifier("renamed")
+    segment.get_mask()

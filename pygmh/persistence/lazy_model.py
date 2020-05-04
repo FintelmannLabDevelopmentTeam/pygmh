@@ -18,7 +18,7 @@ class IImageDataLoader:
 class IImageSegmentDataLoader:
 
     @abstractmethod
-    def load_segment_mask(self, identifier: str) -> np.ndarray:
+    def load_segment_mask(self, slug: str) -> np.ndarray:
         pass
 
 
@@ -68,7 +68,7 @@ class LazyLoadedImageSegment(ImageSegment):
         if self._mask is None:
             self.set_mask(
                 self._segment_data_loader.load_segment_mask(
-                    self._identifier
+                    self._slug
                 )
             )
         return self._mask

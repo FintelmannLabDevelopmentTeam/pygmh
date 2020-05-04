@@ -37,7 +37,7 @@ class AbstractDataLoader(IImageDataLoader, IImageSegmentDataLoader):
     def load_image_data(self) -> np.ndarray:
         raise NotImplementedError()
 
-    def load_segment_mask(self, identifier: str) -> np.ndarray:
+    def load_segment_mask(self, slug: str) -> np.ndarray:
         raise NotImplementedError()
 
     def _get_image_data_dtype(self):
@@ -72,10 +72,10 @@ class TarfileDataLoader(AbstractDataLoader):
 
         return array
 
-    def load_segment_mask(self, identifier: str) -> np.ndarray:
+    def load_segment_mask(self, slug: str) -> np.ndarray:
 
         member = self._tar_file_handle.getmember(
-            IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(identifier)
+            IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(slug)
         )
 
         mask: np.ndarray = np.frombuffer(self._tar_file_handle.extractfile(member).read(), dtype=np.bool)
@@ -108,10 +108,10 @@ class FilesystemDataLoader(AbstractDataLoader):
 
         return array
 
-    def load_segment_mask(self, identifier: str) -> np.ndarray:
+    def load_segment_mask(self, slug: str) -> np.ndarray:
 
         mask: np.ndarray = np.fromfile(
-            os.path.join(self._dir_path, IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(identifier)),
+            os.path.join(self._dir_path, IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(slug)),
             dtype=np.bool
         )
         mask = mask.reshape(self._manifest["image"]["size"])
@@ -267,7 +267,7 @@ class Adapter(IAdapter):
 
                 for image_segment in image.get_segments():
                     add_file(
-                        IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(image_segment.get_identifier()),
+                        IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(image_segment.get_slug()),
                         image_segment.get_mask().tobytes()
                     )
 
@@ -348,7 +348,7 @@ class Adapter(IAdapter):
                     os.path.join(
                         temporary_dir_path,
                         IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(
-                            image_segment.get_identifier()
+                            image_segment.get_slug()
                         )
                     )
                 )
