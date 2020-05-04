@@ -24,6 +24,7 @@ pytest = "^5.4.1"
 
 [tool.poetry.scripts]
 info = "pygmh.cli.info:main"
+benchmark = "pygmh.cli.benchmark:main"
 
 [tool.poetry.urls]
 issues = "https://github.com/FintelmannLabDevelopmentTeam/pygmh/issues"
