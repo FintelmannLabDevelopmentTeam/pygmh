@@ -21,6 +21,6 @@
 3. Run tests:
 
     ```bash
-    $ pytest
+    (pygmh-zeOtsN75-py3.7) $ pytest
     ...
     ```
