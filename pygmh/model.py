@@ -6,7 +6,7 @@ The model contains the following information:
     * Information to translate between array- and real-world-coordinates like voxel-size and -spacing
     * Arbitrary meta-data
     * Slice-specific information
-    * A set of segmentations
+    * A set of segments
 """
 
 import re
@@ -32,12 +32,12 @@ class MetaData(Dict[str, Any]):
     pass
 
 
-class ImageSegmentation:
-    """Representation of a segmentation on the image.
+class ImageSegment:
+    """Defines a segment of the image.
 
     Args:
-        image (Image): Instance of the image, the segmentation belongs to.
-        identifier (str): A string-identifier for the segmentation. Has to be unique within the image instance.
+        image (Image): Instance of the image, the segment belongs to.
+        identifier (str): A string-identifier for the segment. Has to be unique within the image instance.
         mask (Optional[np.ndarray]): Boolean mask, defining the segmented area within the image.
         mask_slug (str): Identifies the mask.
         color (Optional[Color]): Default color to be used for rendering.
@@ -63,7 +63,7 @@ class ImageSegmentation:
 
         self._order_index = max([-1] + [
             seg._order_index
-            for seg in image.get_segmentations()
+            for seg in image.get_segments()
         ]) + 1
 
         self.set_identifier(identifier)
@@ -73,22 +73,22 @@ class ImageSegmentation:
             self.set_mask(mask)
 
     def get_identifier(self) -> str:
-        """Gets the identifier of the segmentation."""
+        """Gets the identifier of the segment."""
         return self._identifier
 
     def set_identifier(self, identifier: str) -> None:
-        """Sets the identifier of the segmentation."""
-        assert Image.is_valid_identifier(identifier), "Invalid segmentation identifier: " + identifier
-        assert not self._image.has_segmentation(identifier),\
-            "There is already a segmentation attached to the image with the given identifier: " + identifier
+        """Sets the identifier of the segment."""
+        assert Image.is_valid_identifier(identifier), "Invalid segment identifier: " + identifier
+        assert not self._image.has_segment(identifier),\
+            "There is already a segment attached to the image with the given identifier: " + identifier
         self._identifier = identifier
 
     def get_meta_data(self) -> MetaData:
-        """Gets the meta-data container of the segmentation."""
+        """Gets the meta-data container of the segment."""
         return self._meta_data
 
     def get_mask(self) -> Optional[np.ndarray]:
-        """Gets the boolean mask of the segmentation."""
+        """Gets the boolean mask of the segment."""
         return self._mask
 
     def set_mask(self, mask: Optional[np.ndarray]) -> None:
@@ -114,25 +114,25 @@ class ImageSegmentation:
         return self._mask_slug
 
     def get_color(self) -> Optional[Color]:
-        """Gets the default segmentation color as RGB tuple."""
+        """Gets the default segment color as RGB tuple."""
         return self._color
 
     def set_color(self, color: Optional[Color]) -> None:
-        """Sets the default segmentation color."""
+        """Sets the default segment color."""
         assert color is None or (len(color) == 3 and all(0 <= component < 256 for component in color))
         self._color = color
 
     def get_segmented_image_data(self,
                                  inner_substitution_value: Any = None,
                                  outer_substitution_value: Any = np.nan) -> np.ndarray:
-        """Gets the raw image data with substituted values for voxels inside/outside the segmentation.
+        """Gets the raw image data with substituted values for voxels inside/outside the segment.
 
         Note:
             Passing *None* as substitution value results in no substitution taking for that region.
 
         Args:
-            inner_substitution_value (Any): Value to substitute into for all voxels within the segmentation.
-            outer_substitution_value (Any): Value to substitute into for all voxels not within the segmentation.
+            inner_substitution_value (Any): Value to substitute into for all voxels within the segment.
+            outer_substitution_value (Any): Value to substitute into for all voxels not within the segment.
 
         Returns:
             np.array: Image data with substituted voxel values.
@@ -180,7 +180,7 @@ class ImageSegmentation:
         ]
 
     def get_segmented_slice_indices(self) -> Set[int]:
-        """Returns the set of slice indices that the segmentation mask has"""
+        """Returns the set of slice indices that the segment mask has."""
 
         if self.get_mask() is None:
             raise Exception()
@@ -289,7 +289,7 @@ class Image:
         self._voxel_spacing = None
 
         self._image_slices = dict()  # indexed by slice index
-        self._image_segmentations = set()
+        self._image_segments = set()
 
         self.set_voxel_size(voxel_size)
         self.set_voxel_spacing(voxel_spacing)
@@ -418,67 +418,69 @@ class Image:
         """Removes the given slice from the image."""
         del(self._image_slices[image_slice.get_slice_index()])
 
-    def has_segmentation(self, identifier: str) -> bool:
-        """Returns the existence of a segmentation with the given identifier."""
+    def has_segment(self, identifier: str) -> bool:
+        """Returns the existence of a segment with the given identifier."""
         try:
-            self.get_segmentation(identifier)
+            self.get_segment(identifier)
         except KeyError:
             return False
         return True
 
-    def get_segmentation(self, identifier: str) -> ImageSegmentation:
-        """Gets the segmentation with the given identifier."""
-        for segmentation in self._image_segmentations:
-            segmentation: ImageSegmentation = segmentation
-            if segmentation.get_identifier() == identifier:
-                return segmentation
-        raise KeyError("Unknown segmentation: '{}'".format(identifier))
+    def get_segment(self, identifier: str) -> ImageSegment:
+        """Gets the segment with the given identifier."""
 
-    def get_segmentations(self) -> Set[ImageSegmentation]:
-        """Gets all attached segmentations."""
-        return self._image_segmentations.copy()
+        for segment in self._image_segments:
+            segment: ImageSegment = segment
+            if segment.get_identifier() == identifier:
+                return segment
 
-    def get_ordered_segmentations(self) -> List[ImageSegmentation]:
-        """Gets all attached segmentations, ordered by their order of addition to the image."""
-        return sorted(list(self.get_segmentations()), key=lambda x: x._order_index)
+        raise KeyError("Unknown segment: '{}'".format(identifier))
 
-    def get_segmentation_count(self) -> int:
-        """Returns the number of segmentations attached to this image."""
-        return len(self._image_segmentations)
+    def get_segments(self) -> Set[ImageSegment]:
+        """Gets all attached segment."""
+        return self._image_segments.copy()
 
-    def add_segmentation(self, identifier: str, mask: np.ndarray, color: Optional[Color] = None) -> ImageSegmentation:
-        """Adds a segmentation with the given mask under the given identifier."""
+    def get_ordered_segments(self) -> List[ImageSegment]:
+        """Gets all attached segments, ordered by their order of addition to the image."""
+        return sorted(list(self.get_segments()), key=lambda x: x._order_index)
 
-        segmentation = ImageSegmentation(self, identifier, self.generate_segmentation_slug(), mask=mask, color=color)
+    def get_segment_count(self) -> int:
+        """Returns the number of segments attached to this image."""
+        return len(self._image_segments)
 
-        return self.register_segmentation(segmentation)
+    def add_segment(self, identifier: str, mask: np.ndarray, color: Optional[Color] = None) -> ImageSegment:
+        """Adds a segment with the given mask under the given identifier."""
 
-    def register_segmentation(self, image_segmentation: ImageSegmentation) -> ImageSegmentation:
+        segment = ImageSegment(self, identifier, self.generate_segment_slug(), mask=mask, color=color)
 
-        assert image_segmentation._image is self  # todo: is there a cleaner way to do this without adding public getters?
-        assert not self.has_segmentation_slug(image_segmentation.get_mask_slug())
-        assert not self.has_segmentation(image_segmentation.get_identifier()),\
-            "There is already a segmentation with this identifier in this image: " + image_segmentation.get_identifier()
+        return self.register_segment(segment)
 
-        self._image_segmentations.add(image_segmentation)
+    def register_segment(self, image_segment: ImageSegment) -> ImageSegment:
 
-        return image_segmentation
+        assert image_segment._image is self  # todo: is there a cleaner way to do this without adding public getters?
+        assert not self.has_segment_slug(image_segment.get_mask_slug())
+        assert not self.has_segment(image_segment.get_identifier()),\
+            "There is already a segment with this identifier in this image: " + image_segment.get_identifier()
 
-    def remove_segmentation(self, image_segmentation: ImageSegmentation) -> None:
-        """Removes the given segmentation from the image."""
-        self._image_segmentations.remove(image_segmentation)
+        self._image_segments.add(image_segment)
 
-    def generate_segmentation_slug(self) -> str:
-        """Generates a random slug which identifies the segmentation mask."""
+        return image_segment
+
+    def remove_segment(self, image_segment: ImageSegment) -> None:
+        """Removes the given segment from the image."""
+        self._image_segments.remove(image_segment)
+
+    def generate_segment_slug(self) -> str:
+        """Generates a random slug which identifies the segment mask."""
         while True:
             slug = generate_random_string()
-            if not self.has_segmentation_slug(slug):
+            if not self.has_segment_slug(slug):
                 return slug
 
-    def has_segmentation_slug(self, slug: str) -> bool:
-        """Returns existence of segmentation slug."""
-        for segmentation in self.get_segmentations():
-            if segmentation.get_mask_slug() == slug:
+    def has_segment_slug(self, slug: str) -> bool:
+        """Returns existence of segment slug."""
+        for segment in self.get_segments():
+            if segment.get_mask_slug() == slug:
                 return True
 
         return False

@@ -16,16 +16,16 @@ import tarfile
 
 import numpy as np
 
-from pygmh.model import Image, ImageSegmentation, MetaData, ImageSlice
+from pygmh.model import Image, ImageSegment, MetaData, ImageSlice
 from pygmh.persistence.interface import IAdapter
-from pygmh.persistence.lazy_image import IImageDataLoader, IImageSegmentationDataLoader, LazyImageSegmentation, LazyImage
+from pygmh.persistence.lazy_image import IImageDataLoader, IImageSegmentDataLoader, LazyImageSegment, LazyImage
 from pygmh.util.random_string import generate_random_string
 
 
-IMAGE_SEGMENTATION_MASK_MEMBER_NAME_FORMAT = "image_segmentation_mask-{}.npy"
+IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT = "mask-{}.npy"
 
 
-class AbstractDataLoader(IImageDataLoader, IImageSegmentationDataLoader):
+class AbstractDataLoader(IImageDataLoader, IImageSegmentDataLoader):
 
     def __init__(self, manifest: dict):
 
@@ -37,7 +37,7 @@ class AbstractDataLoader(IImageDataLoader, IImageSegmentationDataLoader):
     def load_image_data(self) -> np.ndarray:
         raise NotImplementedError()
 
-    def load_segmentation_mask(self, identifier: str) -> np.ndarray:
+    def load_segment_mask(self, identifier: str) -> np.ndarray:
         raise NotImplementedError()
 
     def _get_image_data_dtype(self):
@@ -72,10 +72,10 @@ class TarfileDataLoader(AbstractDataLoader):
 
         return array
 
-    def load_segmentation_mask(self, identifier: str) -> np.ndarray:
+    def load_segment_mask(self, identifier: str) -> np.ndarray:
 
         member = self._tar_file_handle.getmember(
-            IMAGE_SEGMENTATION_MASK_MEMBER_NAME_FORMAT.format(identifier)
+            IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(identifier)
         )
 
         mask: np.ndarray = np.frombuffer(self._tar_file_handle.extractfile(member).read(), dtype=np.bool)
@@ -108,10 +108,10 @@ class FilesystemDataLoader(AbstractDataLoader):
 
         return array
 
-    def load_segmentation_mask(self, identifier: str) -> np.ndarray:
+    def load_segment_mask(self, identifier: str) -> np.ndarray:
 
         mask: np.ndarray = np.fromfile(
-            os.path.join(self._dir_path, IMAGE_SEGMENTATION_MASK_MEMBER_NAME_FORMAT.format(identifier)),
+            os.path.join(self._dir_path, IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(identifier)),
             dtype=np.bool
         )
         mask = mask.reshape(self._manifest["image"]["size"])
@@ -229,7 +229,7 @@ class Adapter(IAdapter):
         image = self._load_image(identifier, manifest, data_loader)
 
         self._load_slices(image, manifest)
-        self._load_segmentations(image, manifest, data_loader)
+        self._load_segments(image, manifest, data_loader)
 
         return image
 
@@ -265,10 +265,10 @@ class Adapter(IAdapter):
                 add_file("manifest.json", self._build_manifest_document(image))
                 add_file("image_data.npy", image.get_image_data().tobytes())
 
-                for image_segmentation in image.get_segmentations():
+                for image_segment in image.get_segments():
                     add_file(
-                        IMAGE_SEGMENTATION_MASK_MEMBER_NAME_FORMAT.format(image_segmentation.get_identifier()),
-                        image_segmentation.get_mask().tobytes()
+                        IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(image_segment.get_identifier()),
+                        image_segment.get_mask().tobytes()
                     )
 
     def is_compressed(self, path: str) -> bool:
@@ -312,21 +312,21 @@ class Adapter(IAdapter):
                 image_slice
             )
 
-    def _load_segmentations(self, image: Image, manifest: dict, data_loader: AbstractDataLoader) -> None:
+    def _load_segments(self, image: Image, manifest: dict, data_loader: AbstractDataLoader) -> None:
 
-        for segmentation_info in manifest["segmentations"]:
+        for segment_info in manifest["segments"]:
 
-            segmentation_slug = segmentation_info["slug"]
-            segmentation_identifier = segmentation_info["identifier"]
-            segmentation_color = tuple(segmentation_info["color"]) if segmentation_info["color"] else None
-            segmentation_meta_data = MetaData(segmentation_info["meta_data"])
+            segment_slug = segment_info["slug"]
+            segment_identifier = segment_info["identifier"]
+            segment_color = tuple(segment_info["color"]) if segment_info["color"] else None
+            segment_meta_data = MetaData(segment_info["meta_data"])
 
-            segmentation = LazyImageSegmentation(image, data_loader, segmentation_slug, segmentation_identifier, segmentation_color)
+            segment = LazyImageSegment(image, data_loader, segment_slug, segment_identifier, segment_color)
 
-            segmentation.get_meta_data().update(segmentation_meta_data)
+            segment.get_meta_data().update(segment_meta_data)
 
-            image.register_segmentation(
-                segmentation
+            image.register_segment(
+                segment
             )
 
     def _write_using_system_tar(self, image: Image, path: str, compressed: bool) -> None:
@@ -342,12 +342,13 @@ class Adapter(IAdapter):
 
             image.get_image_data().tofile(os.path.join(temporary_dir_path, "image_data.npy"))
 
-            for image_segmentation in image.get_segmentations():
-                image_segmentation.get_mask().tofile(
+            for image_segment in image.get_segments():
+
+                image_segment.get_mask().tofile(
                     os.path.join(
                         temporary_dir_path,
-                        IMAGE_SEGMENTATION_MASK_MEMBER_NAME_FORMAT.format(
-                            image_segmentation.get_identifier()
+                        IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(
+                            image_segment.get_identifier()
                         )
                     )
                 )
@@ -384,9 +385,9 @@ class Adapter(IAdapter):
                 self._build_image_slice_manifest(image_slice)
                 for image_slice in image.get_slices()
             ],
-            "segmentations": [
-                self._build_image_segmentation_manifest(image_segmentation)
-                for image_segmentation in image.get_segmentations()
+            "segments": [
+                self._build_image_segment_manifest(image_segment)
+                for image_segment in image.get_segments()
             ],
         }
 
@@ -403,13 +404,13 @@ class Adapter(IAdapter):
             "meta_data": image_slice.get_meta_data(),
         }
 
-    def _build_image_segmentation_manifest(self, image_segmentation: ImageSegmentation) -> dict:
+    def _build_image_segment_manifest(self, image_segment: ImageSegment) -> dict:
 
         return {
-            "slug": image_segmentation.get_mask_slug(),
-            "identifier": image_segmentation.get_identifier(),
-            "color": image_segmentation.get_color(),
-            "meta_data": image_segmentation.get_meta_data(),
+            "slug": image_segment.get_mask_slug(),
+            "identifier": image_segment.get_identifier(),
+            "color": image_segment.get_color(),
+            "meta_data": image_segment.get_meta_data(),
         }
 
     def _validate_manifest(self, manifest: dict):

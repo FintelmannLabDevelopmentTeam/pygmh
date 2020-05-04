@@ -37,23 +37,23 @@ def test_read():
         }
     }
 
-    segmentation1 = image.get_segmentation("segmentation1")
+    segment1 = image.get_segment("segment1")
     assert np.array_equal(
-        segmentation1.get_mask(),
+        segment1.get_mask(),
         np.load(asset_path("simple_gmh/seg1.npy"))
     )
-    assert segmentation1.get_color() == (80, 100, 200)
-    assert segmentation1.get_meta_data() == {
+    assert segment1.get_color() == (80, 100, 200)
+    assert segment1.get_meta_data() == {
         "foo": "bar"
     }
 
-    segmentation2 = image.get_segmentation("segmentation2")
+    segment2 = image.get_segment("segment2")
     assert np.array_equal(
-        segmentation2.get_mask(),
+        segment2.get_mask(),
         np.load(asset_path("simple_gmh/seg2.npy"))
     )
-    assert segmentation2.get_color() == (60, 23, 150)
-    assert segmentation2.get_meta_data() == {
+    assert segment2.get_color() == (60, 23, 150)
+    assert segment2.get_meta_data() == {
         "foo": "baz"
     }
 

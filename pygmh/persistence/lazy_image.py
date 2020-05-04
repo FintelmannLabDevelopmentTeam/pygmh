@@ -5,7 +5,7 @@ from typing import Optional
 
 import numpy as np
 
-from pygmh.model import Image, ImageSegmentation, MetaData, Vector3, Color
+from pygmh.model import Image, ImageSegment, MetaData, Vector3, Color
 
 
 class IImageDataLoader:
@@ -15,10 +15,10 @@ class IImageDataLoader:
         pass
 
 
-class IImageSegmentationDataLoader:
+class IImageSegmentDataLoader:
 
     @abstractmethod
-    def load_segmentation_mask(self, identifier: str) -> np.ndarray:
+    def load_segment_mask(self, identifier: str) -> np.ndarray:
         pass
 
 
@@ -47,27 +47,27 @@ class LazyImage(Image):
         return self._image_data
 
 
-class LazyImageSegmentation(ImageSegmentation):
+class LazyImageSegment(ImageSegment):
 
     def __init__(
             self,
             image,  # type:Image
-            segmentation_data_loader: IImageSegmentationDataLoader,
+            segment_data_loader: IImageSegmentDataLoader,
             mask_slug: str,
             identifier: str,
             color: Optional[Color] = None
     ):
-        assert isinstance(segmentation_data_loader, IImageSegmentationDataLoader)
+        assert isinstance(segment_data_loader, IImageSegmentDataLoader)
 
         super().__init__(image, identifier, mask_slug, color=color)
 
-        self._segmentation_data_loader = segmentation_data_loader
+        self._segment_data_loader = segment_data_loader
 
     def get_mask(self) -> np.ndarray:
         """Override accessor to retrieve mask if not already loaded."""
         if self._mask is None:
             self.set_mask(
-                self._segmentation_data_loader.load_segmentation_mask(
+                self._segment_data_loader.load_segment_mask(
                     self._identifier
                 )
             )
