@@ -53,13 +53,13 @@ class LazyLoadedImageSegment(ImageSegment):
             self,
             image,  # type:Image
             segment_data_loader: IImageSegmentDataLoader,
-            mask_slug: str,
+            slug: str,
             identifier: str,
             color: Optional[Color] = None
     ):
         assert isinstance(segment_data_loader, IImageSegmentDataLoader)
 
-        super().__init__(image, identifier, mask_slug, color=color)
+        super().__init__(image, identifier, slug, color=color)
 
         self._segment_data_loader = segment_data_loader
 

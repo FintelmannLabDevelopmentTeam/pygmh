@@ -407,7 +407,7 @@ class Adapter(IAdapter):
     def _build_image_segment_manifest(self, image_segment: ImageSegment) -> dict:
 
         return {
-            "slug": image_segment.get_mask_slug(),
+            "slug": image_segment.get_slug(),
             "identifier": image_segment.get_identifier(),
             "color": image_segment.get_color(),
             "meta_data": image_segment.get_meta_data(),

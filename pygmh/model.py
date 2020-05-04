@@ -39,7 +39,7 @@ class ImageSegment:
         image (Image): Instance of the image, the segment belongs to.
         identifier (str): A string-identifier for the segment. Has to be unique within the image instance.
         mask (Optional[np.ndarray]): Boolean mask, defining the segmented area within the image.
-        mask_slug (str): Identifies the mask.
+        slug (str): Identifies the mask.
         color (Optional[Color]): Default color to be used for rendering.
     """
 
@@ -47,7 +47,7 @@ class ImageSegment:
         self,
         image,  # type:Image
         identifier: str,
-        mask_slug: str,
+        slug: str,
         *,
         mask: Optional[np.ndarray] = None,
         color: Optional[Color] = None,
@@ -57,7 +57,7 @@ class ImageSegment:
         self._image = image
         self._identifier = None
         self._mask = None
-        self._mask_slug = mask_slug
+        self._slug = slug
         self._color = None
         self._meta_data = MetaData()
 
@@ -109,9 +109,9 @@ class ImageSegment:
             # prevent after-the-fact modification of the mask
             self._mask.flags.writeable = False
 
-    def get_mask_slug(self) -> str:
+    def get_slug(self) -> str:
         """Gets the mask slug."""
-        return self._mask_slug
+        return self._slug
 
     def get_color(self) -> Optional[Color]:
         """Gets the default segment color as RGB tuple."""
@@ -458,7 +458,7 @@ class Image:
     def register_segment(self, image_segment: ImageSegment) -> ImageSegment:
 
         assert image_segment._image is self  # todo: is there a cleaner way to do this without adding public getters?
-        assert not self.has_segment_slug(image_segment.get_mask_slug())
+        assert not self.has_segment_slug(image_segment.get_slug())
         assert not self.has_segment(image_segment.get_identifier()),\
             "There is already a segment with this identifier in this image: " + image_segment.get_identifier()
 
@@ -480,7 +480,7 @@ class Image:
     def has_segment_slug(self, slug: str) -> bool:
         """Returns existence of segment slug."""
         for segment in self.get_segments():
-            if segment.get_mask_slug() == slug:
+            if segment.get_slug() == slug:
                 return True
 
         return False
