@@ -18,7 +18,7 @@ import numpy as np
 
 from pygmh.model import Image, ImageSegment, MetaData, ImageSlice
 from pygmh.persistence.interface import IAdapter
-from pygmh.persistence.lazy_image import IImageDataLoader, IImageSegmentDataLoader, LazyImageSegment, LazyImage
+from pygmh.persistence.lazy_model import IImageDataLoader, IImageSegmentDataLoader, LazyLoadedImageSegment, LazyLoadedImage
 from pygmh.util.random_string import generate_random_string
 
 
@@ -295,7 +295,7 @@ class Adapter(IAdapter):
         voxel_spacing = tuple(manifest["image"]["voxel_spacing"]) if manifest["image"]["voxel_spacing"] else None
         meta_data = MetaData(manifest["meta_data"])
 
-        return LazyImage(data_loader, identifier, meta_data, voxel_size, voxel_spacing)
+        return LazyLoadedImage(data_loader, identifier, meta_data, voxel_size, voxel_spacing)
 
     def _load_slices(self, image: Image, manifest: dict) -> None:
 
@@ -321,7 +321,7 @@ class Adapter(IAdapter):
             segment_color = tuple(segment_info["color"]) if segment_info["color"] else None
             segment_meta_data = MetaData(segment_info["meta_data"])
 
-            segment = LazyImageSegment(image, data_loader, segment_slug, segment_identifier, segment_color)
+            segment = LazyLoadedImageSegment(image, data_loader, segment_slug, segment_identifier, segment_color)
 
             segment.get_meta_data().update(segment_meta_data)
 

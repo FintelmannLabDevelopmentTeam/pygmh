@@ -22,7 +22,7 @@ class IImageSegmentDataLoader:
         pass
 
 
-class LazyImage(Image):
+class LazyLoadedImage(Image):
 
     def __init__(
         self,
@@ -47,7 +47,7 @@ class LazyImage(Image):
         return self._image_data
 
 
-class LazyImageSegment(ImageSegment):
+class LazyLoadedImageSegment(ImageSegment):
 
     def __init__(
             self,
