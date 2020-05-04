@@ -1,6 +1,9 @@
 
+import os
+
 import click
 
+from pygmh.cli.util import format_byte_count
 from pygmh.persistence.gmh.adapter import Adapter
 
 
@@ -15,6 +18,7 @@ def main(path: str, cached: bool, allow_system_tar: bool):
     image = adapter.read(path, cached=cached, allow_system_tar=allow_system_tar)
 
     click.echo(f"Path: {path}")
+    click.echo(f"Size: {format_byte_count(os.stat(path).st_size)}")
     click.echo(f"Compressed: {'Yes' if adapter.is_compressed(path) else 'No'}")
     click.echo(f"Identifier: {image.get_identifier()}")
     click.echo(f"Dimensions: {image.get_image_data().shape}")
