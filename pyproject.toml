@@ -15,7 +15,7 @@ keywords = [
 
 [tool.poetry.dependencies]
 jsonschema = "^3.2"
-python = "^3.7"
+python = "^3.6"
 numpy = "^1.18"
 click = "^7.1.2"
 

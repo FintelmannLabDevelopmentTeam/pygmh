@@ -3,17 +3,20 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: [3.6, 3.7, 3.8]
     steps:
     - uses: actions/checkout@master
     - name: Install dependencies
       uses: abatilo/actions-poetry@master
       with:
-        python_version: 3.8.0
+        python_version: ${{ matrix.python_version }}
         poetry_version: 1.0.5
         args: install
     - name: Run pytest
       uses: abatilo/actions-poetry@master
       with:
-        python_version: 3.8.0
+        python_version: ${{ matrix.python_version }}
         poetry_version: 1.0.5
         args: run python -m pytest pygmh_test/
