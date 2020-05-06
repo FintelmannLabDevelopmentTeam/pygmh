@@ -23,6 +23,8 @@ def main(path: str, cached: bool, allow_system_tar: bool):
     click.echo()
     click.echo(f"Identifier: {image.get_identifier()}")
     click.echo(f"Dimensions: {image.get_image_data().shape}")
+    click.echo()
+    click.echo(f"Segments: {', '.join(map(lambda segment: segment.get_identifier(), image.get_segments())) if image.get_segments() else '-'}")
 
 
 if __name__ == "__main__":
