@@ -207,10 +207,12 @@ class Adapter(IAdapter):
             if is_compressed:
                 tar_flags += "z"
 
-            subprocess.call(
+            return_code = subprocess.call(
                 ["tar", tar_flags, path, "-C", dir_path],
                 stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
             )
+
+            assert return_code == 0, f"Failed to extract archive to temporary path '{dir_path}'."
 
             with open(os.path.join(dir_path, "manifest.json"), "r") as fp:
                 manifest: dict = json.load(fp)
@@ -371,10 +373,12 @@ class Adapter(IAdapter):
             if compressed:
                 tar_flags += "z"
 
-            subprocess.call(
+            return_code = subprocess.call(
                 ["tar", tar_flags, temporary_archive_path, "-C", temporary_dir_path] + os.listdir(temporary_dir_path),
                 stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
             )
+
+            assert return_code == 0, f"Failed to write archive to temporary path '{temporary_archive_path}'."
 
         os.rename(temporary_archive_path, path)
 
