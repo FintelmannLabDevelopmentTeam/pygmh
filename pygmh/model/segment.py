@@ -15,7 +15,7 @@ class ImageSegment:
         image (Image): Instance of the image, the segment belongs to.
         identifier (str): A string-identifier for the segment. Has to be unique within the image instance.
         mask (Optional[np.ndarray]): Boolean mask, defining the segmented area within the image.
-        slug (str): Identifies the mask.
+        slug (str): Identifies the mask. (todo: remove from model)
         color (Optional[Color]): Default color to be used for rendering.
     """
 
@@ -92,6 +92,10 @@ class ImageSegment:
             # prevent after-the-fact modification of the mask
             self._mask.flags.writeable = False
 
+    def is_empty(self) -> bool:
+
+        return True not in self.get_mask()
+
     def get_slug(self) -> str:
         """Gets the mask slug."""
 
@@ -148,7 +152,12 @@ class ImageSegment:
         if self.get_mask() is None:
             raise Exception()
 
+        if self.is_empty():
+            raise Exception("Cannot calculate bounding boy from empty mask")
+
         non_zero = np.nonzero(self.get_mask())
+
+        assert len(non_zero[0]) > 0
 
         return (
             (int(np.min(non_zero[0])), int(np.min(non_zero[1])), int(np.min(non_zero[2]))),
