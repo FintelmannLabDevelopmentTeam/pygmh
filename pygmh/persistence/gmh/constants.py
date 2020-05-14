@@ -1,0 +1,2 @@
+
+IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT = "mask-{}.npy"
