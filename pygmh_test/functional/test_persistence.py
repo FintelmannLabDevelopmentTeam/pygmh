@@ -1,11 +1,11 @@
 
 import numpy as np
 
-from pygmh.model import Image
 from pygmh.persistence.gmh import Adapter
 from pygmh.persistence.lazy_model import LazyLoadedImage
 from pygmh_test.assets import asset_path
 from pygmh_test.functional.assertions import assert_equal_images
+from pygmh_test.functional.image_generation import generate_image
 
 
 def test_read():
@@ -84,9 +84,7 @@ def test_read_write_read(tmp_path):
 
 def test_write_and_read(tmp_path):
 
-    data_volume = (np.random.rand(10, 15, 20) * pow(2, 16)).astype(np.int32)
-
-    image = Image(image_data=data_volume, identifier="test")
+    image = generate_image()
 
     adapter = Adapter()
     path = tmp_path / f"{image.get_identifier()}.gmh"
