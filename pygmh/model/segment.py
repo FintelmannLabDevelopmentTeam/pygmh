@@ -142,7 +142,7 @@ class ImageSegment:
 
         return data
 
-    def get_bounding_box_definition(self) -> Tuple[Vector3, Vector3]:
+    def get_bounding_box(self) -> Tuple[Vector3, Vector3]:
         """Gets the tuples of indices that define a diagonal vector which further defines the bounding box"""
 
         if self.get_mask() is None:
@@ -158,7 +158,7 @@ class ImageSegment:
     def get_mask_in_bounding_box(self) -> np.ndarray:
         """Gets the mask defined by the bounding box"""
 
-        bb = self.get_bounding_box_definition()
+        bb = self.get_bounding_box()
 
         return self.get_mask()[
             bb[0][0]:bb[1][0] + 1,
