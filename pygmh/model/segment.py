@@ -151,8 +151,8 @@ class ImageSegment:
         non_zero = np.nonzero(self.get_mask())
 
         return (
-            (np.min(non_zero[0]), np.min(non_zero[1]), np.min(non_zero[2])),
-            (np.max(non_zero[0]), np.max(non_zero[1]), np.max(non_zero[2]))
+            (int(np.min(non_zero[0])), int(np.min(non_zero[1])), int(np.min(non_zero[2]))),
+            (int(np.max(non_zero[0])), int(np.max(non_zero[1])), int(np.max(non_zero[2]))),
         )
 
     def get_mask_in_bounding_box(self) -> np.ndarray:
