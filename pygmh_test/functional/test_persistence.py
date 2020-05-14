@@ -16,7 +16,7 @@ def test_read():
         asset_path("simple_gmh/my-identifier123.gmh")
     )
 
-    assert image.get_identifier() == "my_identifier123"
+    assert image.get_identifier() == "my-identifier123"
     assert np.array_equal(
         image.get_image_data(),
         np.load(asset_path("simple_gmh/image_data.npy"))

@@ -143,7 +143,7 @@ class Adapter(IAdapter):
         """Deduce image identifier from file base name."""
 
         identifier = os.path.splitext(os.path.basename(file_path))[0]
-        identifier = re.sub('[^0-9a-zA-Z]+', '_', identifier)
+        identifier = re.sub('[^0-9a-zA-Z-_ ]', '_', identifier)
 
         return identifier
 
