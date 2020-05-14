@@ -84,8 +84,7 @@ class Adapter(IAdapter):
 
             # note: do not close tarfile as the handle is used within the DataLoader instance
 
-        assert isinstance(manifest, dict)
-        #self._validate_manifest(manifest)
+        self._validate_manifest(manifest)
 
         image = self._load_image(identifier, manifest, data_loader)
 
@@ -257,9 +256,9 @@ class Adapter(IAdapter):
         manifest = {
             "image": {
                 "precision_bytes": image.get_image_data().dtype.itemsize,
-                "size": image.get_image_data().shape,  # the image volume byte sequence does not contain this
-                "voxel_size": image.get_voxel_size(),
-                "voxel_spacing": image.get_voxel_spacing(),
+                "size": list(image.get_image_data().shape),  # the image volume byte sequence does not contain this
+                "voxel_size": list(image.get_voxel_size()) if image.get_voxel_size() else None,
+                "voxel_spacing": list(image.get_voxel_spacing()) if image.get_voxel_spacing() else None,
             },
             "meta_data": image.get_meta_data(),
             "slices": [
@@ -273,7 +272,7 @@ class Adapter(IAdapter):
         }
 
         # make sure the result will actually be readable
-        #self._validate_manifest(manifest)
+        self._validate_manifest(manifest)
 
         return manifest
 
@@ -291,21 +290,21 @@ class Adapter(IAdapter):
             "bounding_box": None,
             "slug": None,
             "identifier": image_segment.get_identifier(),
-            "color": image_segment.get_color(),
+            "color": list(image_segment.get_color()) if image_segment.get_color() else None,
             "meta_data": image_segment.get_meta_data(),
         }
 
         if not image_segment.is_empty():
 
-            segment_manifest["bounding_box"] = image_segment.get_bounding_box()
+            bounding_box = image_segment.get_bounding_box()
+
+            segment_manifest["bounding_box"] = [list(bounding_box[0]), list(bounding_box[1])]
             segment_manifest["slug"] = image_segment.get_slug()
 
         return segment_manifest
 
     def _validate_manifest(self, manifest: dict):
 
-        # todo: does not work as jsonschema type "array" does not match tuples (e.g. voxel_spacing)
-        # see: https://github.com/Julian/jsonschema/issues/148
         jsonschema.validate(manifest, self._get_manifest_validation_schema())
 
     def _get_manifest_validation_schema(self) -> str:

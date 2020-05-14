@@ -8,6 +8,14 @@
         "type": "integer"
       }
     },
+    "coordinates": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "integer"
+      }
+    },
     "vector": {
       "type": "array",
       "items": {
@@ -18,14 +26,43 @@
 
   "type": "object",
   "required": [
+    "image",
     "meta_data",
     "segments",
-    "slices",
-    "voxel_size",
-    "voxel_spacing"
+    "slices"
   ],
   "additionalProperties": false,
   "properties": {
+    "image": {
+      "type": "object",
+      "required": [
+        "precision_bytes",
+        "size",
+        "voxel_size",
+        "voxel_spacing"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "precision_bytes": {
+          "type": "integer"
+        },
+        "size": {
+          "$ref": "#/definitions/coordinates"
+        },
+        "voxel_size": {
+          "oneOf": [
+            {"$ref": "#/definitions/vector"},
+            {"type": "null"}
+          ]
+        },
+        "voxel_spacing": {
+          "oneOf": [
+            {"$ref": "#/definitions/vector"},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
     "meta_data": {
       "type": "object"
     },
@@ -34,14 +71,42 @@
       "items": {
         "type": "object",
         "required": [
+          "slug",
           "color",
           "identifier",
           "meta_data"
         ],
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
+          "slug": {
+            "oneOf": [
+              {"type": "string"},
+              {"type": "null"}
+            ]
+          },
+          "bounding_box": {
+            "oneOf": [
+              {"type": "null"},
+              {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            ]
+          },
           "color": {
-            "$ref": "#/definitions/color"
+            "oneOf": [
+              {"type": "null"},
+              {"$ref": "#/definitions/color"}
+            ]
           },
           "identifier": {
             "type": "string"
@@ -77,18 +142,6 @@
           }
         }
       }
-    },
-    "voxel_size": {
-      "oneOf": [
-        {"$ref": "#/definitions/vector"},
-        {"type": "null"}
-      ]
-    },
-    "voxel_spacing": {
-      "oneOf": [
-        {"$ref": "#/definitions/vector"},
-        {"type": "null"}
-      ]
     }
   }
 }
