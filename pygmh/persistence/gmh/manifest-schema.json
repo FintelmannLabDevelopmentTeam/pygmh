@@ -71,12 +71,13 @@
       "items": {
         "type": "object",
         "required": [
+          "bounding_box",
           "slug",
           "color",
           "identifier",
           "meta_data"
         ],
-        "additionalProperties": true,
+        "additionalProperties": false,
         "properties": {
           "slug": {
             "oneOf": [
