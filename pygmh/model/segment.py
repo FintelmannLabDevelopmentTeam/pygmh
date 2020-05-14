@@ -5,7 +5,7 @@ import numpy as np
 
 from pygmh.model.identifier import is_valid_identifier
 from pygmh.model.meta_data import MetaData
-from pygmh.model.misc import Color, Vector3
+from pygmh.model.misc import Color, Coordinates3
 
 
 class ImageSegment:
@@ -142,7 +142,7 @@ class ImageSegment:
 
         return data
 
-    def get_bounding_box(self) -> Tuple[Vector3, Vector3]:
+    def get_bounding_box(self) -> Tuple[Coordinates3, Coordinates3]:
         """Gets the tuples of indices that define a diagonal vector which further defines the bounding box"""
 
         if self.get_mask() is None:
