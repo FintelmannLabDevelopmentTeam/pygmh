@@ -41,6 +41,14 @@ def generate_image() -> Image:
         "foo": "baz"
     })
 
+    # minimal mask
+    mask3 = np.zeros(shape=image_data.shape, dtype=np.bool)
+    mask3[3, 4, 5] = True
+    image.add_segment("minimal_mask", mask3)
+
+    # empty mask
+    image.add_segment("empty_segment", np.zeros(shape=image_data.shape, dtype=np.bool))
+
     slice1 = image.add_slice(0, "slice1")
     slice1.get_meta_data().update({
         "something": 1

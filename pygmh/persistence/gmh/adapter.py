@@ -13,6 +13,8 @@ import logging
 import os
 import tarfile
 
+import numpy as np
+
 from pygmh.model import Image, ImageSegment, MetaData, ImageSlice
 from pygmh.persistence.gmh.constants import IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT
 from pygmh.persistence.gmh.data_loader import CachedFilesystemDataLoader, FilesystemDataLoader, TarfileDataLoader, \
@@ -125,9 +127,13 @@ class Adapter(IAdapter):
                 add_file("image_data.npy", image.get_image_data().tobytes())
 
                 for image_segment in image.get_segments():
+
+                    if image_segment.is_empty():
+                        continue
+
                     add_file(
                         IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(image_segment.get_slug()),
-                        image_segment.get_mask().tobytes()
+                        image_segment.get_mask_in_bounding_box().tobytes()
                     )
 
     def is_compressed(self, path: str) -> bool:
@@ -176,11 +182,22 @@ class Adapter(IAdapter):
         for segment_info in manifest["segments"]:
 
             segment_slug = segment_info["slug"]
+            segment_bounding_box = segment_info["bounding_box"] if "bounding_box" in segment_info else None # todo: make obligatory
             segment_identifier = segment_info["identifier"]
             segment_color = tuple(segment_info["color"]) if segment_info["color"] else None
             segment_meta_data = MetaData(segment_info["meta_data"])
 
-            segment = LazyLoadedImageSegment(image, data_loader, segment_slug, segment_identifier, segment_color)
+            # lazy-load non-empty mask
+            if segment_slug is not None:
+
+                segment = LazyLoadedImageSegment(image, data_loader, segment_bounding_box, segment_slug, segment_identifier, segment_color)
+
+            # construct empty mask
+            else:
+
+                mask = np.zeros(image.get_image_data().shape, dtype=np.bool)
+
+                segment = ImageSegment(image, segment_identifier, None, mask=mask, color=segment_color)
 
             segment.get_meta_data().update(segment_meta_data)
 
@@ -203,7 +220,10 @@ class Adapter(IAdapter):
 
             for image_segment in image.get_segments():
 
-                image_segment.get_mask().tofile(
+                if image_segment.is_empty():
+                    continue
+
+                image_segment.get_mask_in_bounding_box().tofile(
                     os.path.join(
                         temporary_dir_path,
                         IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(
@@ -267,12 +287,20 @@ class Adapter(IAdapter):
 
     def _build_image_segment_manifest(self, image_segment: ImageSegment) -> dict:
 
-        return {
-            "slug": image_segment.get_slug(),
+        segment_manifest = {
+            "bounding_box": None,
+            "slug": None,
             "identifier": image_segment.get_identifier(),
             "color": image_segment.get_color(),
             "meta_data": image_segment.get_meta_data(),
         }
+
+        if not image_segment.is_empty():
+
+            segment_manifest["bounding_box"] = image_segment.get_bounding_box()
+            segment_manifest["slug"] = image_segment.get_slug()
+
+        return segment_manifest
 
     def _validate_manifest(self, manifest: dict):
 

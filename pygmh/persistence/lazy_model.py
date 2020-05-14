@@ -1,11 +1,11 @@
 """Lazy-loaded model for a single image."""
 
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
-from pygmh.model import Image, ImageSegment, MetaData, Vector3, Color
+from pygmh.model import Image, ImageSegment, MetaData, Vector3, Color, Coordinates3
 
 
 class IImageDataLoader:
@@ -18,7 +18,7 @@ class IImageDataLoader:
 class IImageSegmentDataLoader:
 
     @abstractmethod
-    def load_segment_mask(self, slug: str) -> np.ndarray:
+    def load_segment_mask(self, slug: str, bounding_box: Optional[Tuple[Coordinates3, Coordinates3]]) -> np.ndarray:
         pass
 
 
@@ -56,6 +56,7 @@ class LazyLoadedImageSegment(ImageSegment):
             self,
             image,  # type:Image
             segment_data_loader: IImageSegmentDataLoader,
+            bounding_box: Optional[Tuple[Coordinates3, Coordinates3]],
             slug: str,
             identifier: str,
             color: Optional[Color] = None
@@ -66,6 +67,7 @@ class LazyLoadedImageSegment(ImageSegment):
         super().__init__(image, identifier, slug, color=color)
 
         self._segment_data_loader = segment_data_loader
+        self._bounding_box = bounding_box
 
     def get_mask(self) -> np.ndarray:
         """Override accessor to retrieve mask if not already loaded."""
@@ -74,7 +76,7 @@ class LazyLoadedImageSegment(ImageSegment):
 
             self.set_mask(
                 self._segment_data_loader.load_segment_mask(
-                    self._slug
+                    self._slug, self._bounding_box
                 )
             )
 
