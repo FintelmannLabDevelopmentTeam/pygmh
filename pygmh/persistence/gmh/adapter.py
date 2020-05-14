@@ -99,6 +99,11 @@ class Adapter(IAdapter):
 
         assert not os.path.exists(path), "Path already exists"
 
+        # todo: remove
+        for image_segment in image.get_segments():
+            image_segment.get_mask()
+            image_segment._slug = image.generate_segment_slug()
+
         # use faster system tar if available
         if allow_system_tar and sys.platform.startswith("linux"):
 
@@ -190,6 +195,12 @@ class Adapter(IAdapter):
             if segment_slug is not None:
 
                 segment = LazyLoadedImageSegment(image, data_loader, segment_bounding_box, segment_slug, segment_identifier, segment_color)
+
+                # todo: remove
+                try:
+                    segment.get_mask()
+                except FileNotFoundError:
+                    segment = LazyLoadedImageSegment(image, data_loader, segment_bounding_box, segment_identifier, segment_identifier, segment_color)
 
             # construct empty mask
             else:
