@@ -93,7 +93,7 @@ class Adapter(IAdapter):
 
         return image
 
-    def write(self, image: Image, path: str, *, compress: bool = True, allow_system_tar: bool = True) -> None:
+    def write(self, image: Image, path: str, *, compress: bool = False, allow_system_tar: bool = True) -> None:
 
         self._logger.info("Writing image to gmh file under: {}".format(path))
 
