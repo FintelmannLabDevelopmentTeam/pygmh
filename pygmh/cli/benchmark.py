@@ -9,8 +9,8 @@ from pygmh.persistence.gmh.adapter import Adapter
 
 
 @click.command()
-@click.argument("path", type=click.Path(exists=True))
-@click.argument("iterations", type=click.INT, default=100)
+@click.argument("path", type=click.Path(exists=True, readable=True))
+@click.argument("iterations", type=click.INT, default=10)
 @click.option("--cached/--not-cached", default=False)
 @click.option("--allow-system-tar/--disallow-system-tar", default=True)
 def main(path: str, iterations: int, cached: bool, allow_system_tar: bool):
