@@ -11,18 +11,13 @@ from pygmh.persistence.gmh.adapter import Adapter
 @click.command()
 @click.argument("path", type=click.Path(exists=True, readable=True))
 @click.argument("iterations", type=click.INT, default=10)
-@click.option("--cached/--not-cached", default=False)
-@click.option("--allow-system-tar/--disallow-system-tar", default=True)
-def main(path: str, iterations: int, cached: bool, allow_system_tar: bool):
+def main(path: str, iterations: int):
 
     adapter = Adapter()
 
     click.echo(f"Image: {path}")
     click.echo(f"Size: {format_byte_count(os.stat(path).st_size)}")
-    click.echo(f"Compressed: {'Yes' if adapter.is_compressed(path) else 'False'}")
     click.echo(f"Iterations: {iterations}")
-    click.echo(f"Use cache: {'True' if cached else 'False'}")
-    click.echo(f"Allow system tar: {'True' if allow_system_tar else 'False'}")
     click.echo()
     click.echo("Running benchmark...")
 
@@ -30,7 +25,7 @@ def main(path: str, iterations: int, cached: bool, allow_system_tar: bool):
 
     for _ in range(iterations):
 
-        adapter.read(path, cached=cached, allow_system_tar=allow_system_tar)
+        adapter.read(path)
 
     time_after = time.monotonic()
 

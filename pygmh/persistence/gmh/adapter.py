@@ -2,10 +2,6 @@
 import io
 import json
 import re
-import subprocess
-import sys
-import tempfile
-import uuid
 from typing import Optional
 
 import jsonschema
@@ -17,8 +13,7 @@ import numpy as np
 
 from pygmh.model import Image, ImageSegment, MetaData, ImageSlice
 from pygmh.persistence.gmh.constants import IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT
-from pygmh.persistence.gmh.data_loader import CachedFilesystemDataLoader, FilesystemDataLoader, TarfileDataLoader, \
-    AbstractDataLoader
+from pygmh.persistence.gmh.data_loader import TarfileDataLoader, AbstractDataLoader
 from pygmh.persistence.interface import IAdapter
 from pygmh.persistence.lazy_model import LazyLoadedImageSegment, LazyLoadedImage
 
@@ -30,61 +25,26 @@ class Adapter(IAdapter):
         self._logger = logging.getLogger(__name__)
         self._manifest_validation_schema: Optional[str] = None
 
-    def read(self, path: str, *, cached: bool = False, allow_system_tar: bool = True) -> Image:
+    def read(self, path: str) -> Image:
 
         self._logger.info("Reading gmh file from: {}".format(path))
 
         assert os.path.isfile(path), "Trying to read gmh file from non-file: {}".format(path)
 
-        is_compressed = self.is_compressed(path)
         identifier = self._deduce_identifier(path)
 
-        # use cached reader
-        if cached:
+        # note: do not close tarfile as the handle is used within the DataLoader instance
+        tar_file_handle = tarfile.open(path, "r")
 
-            data_loader = CachedFilesystemDataLoader(path)
-            manifest = data_loader.get_manifest()
-
-        # use faster system tar if available
-        elif allow_system_tar and sys.platform.startswith("linux"):
-
-            dir_path = FilesystemDataLoader.get_temporary_directory_path()
-
-            tar_flags = "xvf"
-
-            if is_compressed:
-                tar_flags += "z"
-
-            return_code = subprocess.call(
-                ["tar", tar_flags, path, "-C", dir_path],
-                stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
-            )
-
-            assert return_code == 0, f"Failed to extract archive to temporary path '{dir_path}'."
-
-            with open(os.path.join(dir_path, "manifest.json"), "r") as fp:
-                manifest: dict = json.load(fp)
-
-            data_loader = FilesystemDataLoader(dir_path, manifest)
-
-        # use default, tarfile-based mechanism
-        else:
-
-            mode = "r:gz" if is_compressed else "r:"
-
-            tar_file_handle = tarfile.open(path, mode)
-
-            # read manifest
-            manifest_member: tarfile.TarInfo = tar_file_handle.getmember("manifest.json")
-            manifest: dict = json.load(
-                tar_file_handle.extractfile(manifest_member)
-            )
-
-            data_loader = TarfileDataLoader(tar_file_handle, manifest)
-
-            # note: do not close tarfile as the handle is used within the DataLoader instance
+        # read manifest
+        manifest_member: tarfile.TarInfo = tar_file_handle.getmember("manifest.json")
+        manifest: dict = json.load(
+            tar_file_handle.extractfile(manifest_member)
+        )
 
         self._validate_manifest(manifest)
+
+        data_loader = TarfileDataLoader(tar_file_handle, manifest)
 
         image = self._load_image(identifier, manifest, data_loader)
 
@@ -93,61 +53,36 @@ class Adapter(IAdapter):
 
         return image
 
-    def write(self, image: Image, path: str, *, compress: bool = False, allow_system_tar: bool = True) -> None:
+    def write(self, image: Image, path: str) -> None:
 
         self._logger.info("Writing image to gmh file under: {}".format(path))
 
         assert not os.path.exists(path), "Path already exists"
 
-        # todo: remove
-        for image_segment in image.get_segments():
-            image_segment.get_mask()
-            image_segment._slug = image.generate_segment_slug()
+        with tarfile.open(path, "w") as tar_file_handle:
 
-        # use faster system tar if available
-        if allow_system_tar and sys.platform.startswith("linux"):
+            def add_file(name: str, content) -> None:
 
-            self._write_using_system_tar(image, path, compress)
+                if isinstance(content, str):
+                    content = content.encode()
 
-        # this implementation is about 15x slower because of the pure-python gzip implementation
-        # see: https://github.com/ParaToolsInc/taucmdr/issues/229
-        else:
+                member = tarfile.TarInfo(name)
+                member.size = len(content)
 
-            mode = "w:gz" if compress else "w"
+                tar_file_handle.addfile(member, io.BytesIO(content))
 
-            with tarfile.open(path, mode) as tar_file_handle:
+            add_file("manifest.json", self._build_manifest_document(image))
+            add_file("image_data.npy", image.get_image_data().tobytes())
 
-                def add_file(name: str, content) -> None:
+            for image_segment in image.get_segments():
 
-                    if isinstance(content, str):
-                        content = content.encode()
+                if image_segment.is_empty():
+                    continue
 
-                    member = tarfile.TarInfo(name)
-                    member.size = len(content)
-
-                    tar_file_handle.addfile(member, io.BytesIO(content))
-
-                add_file("manifest.json", self._build_manifest_document(image))
-                add_file("image_data.npy", image.get_image_data().tobytes())
-
-                for image_segment in image.get_segments():
-
-                    if image_segment.is_empty():
-                        continue
-
-                    add_file(
-                        IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(image_segment.get_slug()),
-                        image_segment.get_mask_in_bounding_box().tobytes()
-                    )
-
-    def is_compressed(self, path: str) -> bool:
-        """Derives compression from gzip header."""
-
-        with open(path, "rb") as fp:
-
-            header = fp.read(3)
-
-            return header == b"\x1f\x8b\x08"
+                add_file(
+                    IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(image_segment.get_slug()),
+                    image_segment.get_mask_in_bounding_box().tobytes()
+                )
 
     def _deduce_identifier(self, file_path: str) -> str:
         """Deduce image identifier from file base name."""
@@ -214,49 +149,6 @@ class Adapter(IAdapter):
             image.register_segment(
                 segment
             )
-
-    def _write_using_system_tar(self, image: Image, path: str, compressed: bool) -> None:
-
-        target_dir_path = os.path.dirname(path)
-
-        assert os.path.isdir(target_dir_path), "Target directory does not exist: {}".format(path)
-
-        with tempfile.TemporaryDirectory() as temporary_dir_path:
-
-            with open(os.path.join(temporary_dir_path, "manifest.json"), "w") as fp:
-                fp.write(self._build_manifest_document(image))
-
-            image.get_image_data().tofile(os.path.join(temporary_dir_path, "image_data.npy"))
-
-            for image_segment in image.get_segments():
-
-                if image_segment.is_empty():
-                    continue
-
-                image_segment.get_mask_in_bounding_box().tofile(
-                    os.path.join(
-                        temporary_dir_path,
-                        IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(
-                            image_segment.get_slug()
-                        )
-                    )
-                )
-
-            temporary_archive_path = os.path.join(target_dir_path, str(uuid.uuid4())) + ".tmp"
-
-            tar_flags = "cvf"
-
-            if compressed:
-                tar_flags += "z"
-
-            return_code = subprocess.call(
-                ["tar", tar_flags, temporary_archive_path, "-C", temporary_dir_path] + os.listdir(temporary_dir_path),
-                stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
-            )
-
-            assert return_code == 0, f"Failed to write archive to temporary path '{temporary_archive_path}'."
-
-        os.rename(temporary_archive_path, path)
 
     def _build_manifest_document(self, image: Image) -> str:
 
