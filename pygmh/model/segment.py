@@ -15,7 +15,6 @@ class ImageSegment:
         image (Image): Instance of the image, the segment belongs to.
         identifier (str): A string-identifier for the segment. Has to be unique within the image instance.
         mask (Optional[np.ndarray]): Boolean mask, defining the segmented area within the image.
-        slug (str): Identifies the mask. (todo: remove from model)
         color (Optional[Color]): Default color to be used for rendering.
     """
 
@@ -23,7 +22,6 @@ class ImageSegment:
         self,
         image,  # type: Image
         identifier: str,
-        slug: str,
         *,
         mask: Optional[np.ndarray] = None,
         color: Optional[Color] = None,
@@ -35,7 +33,6 @@ class ImageSegment:
         self._image = image
         self._identifier = None
         self._mask = None
-        self._slug = slug
         self._color = None
         self._meta_data = MetaData()
 
@@ -95,11 +92,6 @@ class ImageSegment:
     def is_empty(self) -> bool:
 
         return True not in self.get_mask()
-
-    def get_slug(self) -> str:
-        """Gets the mask slug."""
-
-        return self._slug
 
     def get_color(self) -> Optional[Color]:
         """Gets the default segment color as RGB tuple."""

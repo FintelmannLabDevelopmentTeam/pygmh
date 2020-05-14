@@ -13,9 +13,10 @@ import numpy as np
 
 from pygmh.model import Image, ImageSegment, MetaData, ImageSlice
 from pygmh.persistence.gmh.constants import IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT
-from pygmh.persistence.gmh.data_loader import TarfileDataLoader, AbstractDataLoader
+from pygmh.persistence.gmh.data_loader import ImageDataLoader, ImageSegmentDataLoader
 from pygmh.persistence.interface import IAdapter
 from pygmh.persistence.lazy_model import LazyLoadedImageSegment, LazyLoadedImage
+from pygmh.util.random_string import generate_random_string
 
 
 class Adapter(IAdapter):
@@ -44,12 +45,16 @@ class Adapter(IAdapter):
 
         self._validate_manifest(manifest)
 
-        data_loader = TarfileDataLoader(tar_file_handle, manifest)
+        image_data_loader = ImageDataLoader(
+            tar_file_handle,
+            self._get_numpy_dtype_by_precision(manifest["image"]["precision_bytes"]),
+            manifest["image"]["size"]
+        )
 
-        image = self._load_image(identifier, manifest, data_loader)
+        image = self._load_image(identifier, manifest, image_data_loader)
 
         self._load_slices(image, manifest)
-        self._load_segments(image, manifest, data_loader)
+        self._load_segments(image, manifest, tar_file_handle)
 
         return image
 
@@ -71,7 +76,9 @@ class Adapter(IAdapter):
 
                 tar_file_handle.addfile(member, io.BytesIO(content))
 
-            add_file("manifest.json", self._build_manifest_document(image))
+            segment_slugs = self._generate_segment_slugs(image)
+
+            add_file("manifest.json", self._build_manifest_document(image, segment_slugs))
             add_file("image_data.npy", image.get_image_data().tobytes())
 
             for image_segment in image.get_segments():
@@ -79,10 +86,29 @@ class Adapter(IAdapter):
                 if image_segment.is_empty():
                     continue
 
+                segment_slug = segment_slugs[image_segment.get_identifier()]
+
                 add_file(
-                    IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(image_segment.get_slug()),
+                    IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(segment_slug),
                     image_segment.get_mask_in_bounding_box().tobytes()
                 )
+
+    def _generate_segment_slugs(self, image: Image) -> dict:
+
+        result = {}
+
+        for num, segment in enumerate(image.get_segments()):
+
+            while True:
+
+                slug = generate_random_string()
+
+                if slug not in result:
+                    break
+
+            result[segment.get_identifier()] = slug
+
+        return result
 
     def _deduce_identifier(self, file_path: str) -> str:
         """Deduce image identifier from file base name."""
@@ -92,14 +118,20 @@ class Adapter(IAdapter):
 
         return identifier
 
-    def _load_image(self, identifier: str, manifest: dict, data_loader: AbstractDataLoader) -> Image:
+    def _load_image(self, identifier: str, manifest: dict, image_data_loader: ImageDataLoader) -> Image:
 
         # deduce image information from manifest
         voxel_size = tuple(manifest["image"]["voxel_size"]) if manifest["image"]["voxel_size"] else None
         voxel_spacing = tuple(manifest["image"]["voxel_spacing"]) if manifest["image"]["voxel_spacing"] else None
         meta_data = MetaData(manifest["meta_data"])
 
-        return LazyLoadedImage(data_loader, identifier, meta_data, voxel_size, voxel_spacing)
+        image = LazyLoadedImage(image_data_loader)
+        image.set_identifier(identifier)
+        image.get_meta_data().update(meta_data)
+        image.set_voxel_size(voxel_size)
+        image.set_voxel_spacing(voxel_spacing)
+
+        return image
 
     def _load_slices(self, image: Image, manifest: dict) -> None:
 
@@ -116,12 +148,12 @@ class Adapter(IAdapter):
                 image_slice
             )
 
-    def _load_segments(self, image: Image, manifest: dict, data_loader: AbstractDataLoader) -> None:
+    def _load_segments(self, image: Image, manifest: dict, tar_file_handle: tarfile.TarFile) -> None:
 
         for segment_info in manifest["segments"]:
 
             segment_slug = segment_info["slug"]
-            segment_bounding_box = segment_info["bounding_box"] if "bounding_box" in segment_info else None # todo: make obligatory
+            segment_bounding_box = segment_info["bounding_box"]
             segment_identifier = segment_info["identifier"]
             segment_color = tuple(segment_info["color"]) if segment_info["color"] else None
             segment_meta_data = MetaData(segment_info["meta_data"])
@@ -129,32 +161,29 @@ class Adapter(IAdapter):
             # lazy-load non-empty mask
             if segment_slug is not None:
 
-                segment = LazyLoadedImageSegment(image, data_loader, segment_bounding_box, segment_slug, segment_identifier, segment_color)
+                image_segment_data_loader = ImageSegmentDataLoader(tar_file_handle, segment_slug, manifest["image"]["size"], segment_bounding_box)
 
-                # todo: remove
-                try:
-                    segment.get_mask()
-                except FileNotFoundError:
-                    segment = LazyLoadedImageSegment(image, data_loader, segment_bounding_box, segment_identifier, segment_identifier, segment_color)
+                segment = LazyLoadedImageSegment(image_segment_data_loader, image, segment_identifier)
 
             # construct empty mask
             else:
 
                 mask = np.zeros(image.get_image_data().shape, dtype=np.bool)
 
-                segment = ImageSegment(image, segment_identifier, None, mask=mask, color=segment_color)
+                segment = ImageSegment(image, segment_identifier, mask=mask)
 
+            segment.set_color(segment_color)
             segment.get_meta_data().update(segment_meta_data)
 
             image.register_segment(
                 segment
             )
 
-    def _build_manifest_document(self, image: Image) -> str:
+    def _build_manifest_document(self, image: Image, segment_slugs: dict) -> str:
 
-        return json.dumps(self._build_manifest(image))
+        return json.dumps(self._build_manifest(image, segment_slugs))
 
-    def _build_manifest(self, image: Image) -> dict:
+    def _build_manifest(self, image: Image, segment_slugs: dict) -> dict:
 
         manifest = {
             "image": {
@@ -169,7 +198,7 @@ class Adapter(IAdapter):
                 for image_slice in image.get_slices()
             ],
             "segments": [
-                self._build_image_segment_manifest(image_segment)
+                self._build_image_segment_manifest(image_segment, segment_slugs[image_segment.get_identifier()])
                 for image_segment in image.get_segments()
             ],
         }
@@ -187,7 +216,7 @@ class Adapter(IAdapter):
             "meta_data": image_slice.get_meta_data(),
         }
 
-    def _build_image_segment_manifest(self, image_segment: ImageSegment) -> dict:
+    def _build_image_segment_manifest(self, image_segment: ImageSegment, segment_slug: str) -> dict:
 
         segment_manifest = {
             "bounding_box": None,
@@ -202,7 +231,7 @@ class Adapter(IAdapter):
             bounding_box = image_segment.get_bounding_box()
 
             segment_manifest["bounding_box"] = [list(bounding_box[0]), list(bounding_box[1])]
-            segment_manifest["slug"] = image_segment.get_slug()
+            segment_manifest["slug"] = segment_slug
 
         return segment_manifest
 
@@ -218,3 +247,13 @@ class Adapter(IAdapter):
                 self._manifest_validation_schema = json.load(file_handle)
 
         return self._manifest_validation_schema
+
+    def _get_numpy_dtype_by_precision(self, precision: int) -> np.dtype:
+
+        if precision == 4:
+
+            return np.int32
+
+        else:
+
+            raise Exception("Unknown precision: {}".format(precision))

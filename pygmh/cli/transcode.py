@@ -10,8 +10,7 @@ from pygmh.persistence.gmh.adapter import Adapter
 @click.command()
 @click.argument("path", type=click.Path(exists=True, readable=True))
 @click.argument("target_path", type=click.Path(exists=False), required=False)
-@click.option("--compress/--not-compress", default=False)
-def main(path: str, target_path: Optional[str], compress: bool):
+def main(path: str, target_path: Optional[str]):
 
     adapter = Adapter()
 
@@ -24,7 +23,7 @@ def main(path: str, target_path: Optional[str], compress: bool):
         temporary_target_path = f"{path}.tmp"
 
     # re-write image
-    adapter.write(image, temporary_target_path if temporary_target_path else target_path, compress=compress)
+    adapter.write(image, temporary_target_path if temporary_target_path else target_path)
 
     # swap-in file
     if temporary_target_path:

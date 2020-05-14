@@ -8,7 +8,6 @@ from pygmh.model.meta_data import MetaData
 from pygmh.model.misc import Color, Vector3
 from pygmh.model.segment import ImageSegment
 from pygmh.model.slice import ImageSlice
-from pygmh.util.random_string import generate_random_string
 
 
 class Image:
@@ -243,14 +242,13 @@ class Image:
     def add_segment(self, identifier: str, mask: np.ndarray, color: Optional[Color] = None) -> ImageSegment:
         """Adds a segment with the given mask under the given identifier."""
 
-        segment = ImageSegment(self, identifier, self.generate_segment_slug(), mask=mask, color=color)
+        segment = ImageSegment(self, identifier, mask=mask, color=color)
 
         return self.register_segment(segment)
 
     def register_segment(self, image_segment: ImageSegment) -> ImageSegment:
 
         assert image_segment._image is self  # todo: is there a cleaner way to do this without adding public getters?
-        assert not self.has_segment_slug(image_segment.get_slug())
         assert not self.has_segment(image_segment.get_identifier()),\
             "There is already a segment with this identifier in this image: " + image_segment.get_identifier()
 
@@ -262,26 +260,6 @@ class Image:
         """Removes the given segment from the image."""
 
         self._image_segments.remove(image_segment)
-
-    def generate_segment_slug(self) -> str:
-        """Generates a random slug which identifies the segment mask."""
-
-        while True:
-
-            slug = generate_random_string()
-
-            if not self.has_segment_slug(slug):
-                return slug
-
-    def has_segment_slug(self, slug: str) -> bool:
-        """Returns existence of segment slug."""
-
-        for segment in self.get_segments():
-
-            if segment.get_slug() == slug:
-                return True
-
-        return False
 
     def _set_image_data(self, image_data: np.ndarray) -> None:
         """Protected method to set the image data to simplify sub-classing."""

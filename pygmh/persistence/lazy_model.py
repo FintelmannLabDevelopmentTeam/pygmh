@@ -1,42 +1,33 @@
-"""Lazy-loaded model for a single image."""
+"""Lazy-loaded model."""
 
 from abc import abstractmethod
-from typing import Optional, Tuple
 
 import numpy as np
 
-from pygmh.model import Image, ImageSegment, MetaData, Vector3, Color, Coordinates3
+from pygmh.model import Image, ImageSegment
 
 
 class IImageDataLoader:
 
     @abstractmethod
-    def load_image_data(self) -> np.ndarray:
+    def load_image_data(self, image: Image) -> np.ndarray:
         pass
 
 
 class IImageSegmentDataLoader:
 
     @abstractmethod
-    def load_segment_mask(self, slug: str, bounding_box: Optional[Tuple[Coordinates3, Coordinates3]]) -> np.ndarray:
+    def load_segment_mask(self, image_segment: ImageSegment) -> np.ndarray:
         pass
 
 
 class LazyLoadedImage(Image):
 
-    def __init__(
-        self,
-        image_data_provider: IImageDataLoader,
-        identifier: Optional[str] = None,
-        meta_data: Optional[MetaData] = None,
-        voxel_size: Optional[Vector3] = None,
-        voxel_spacing: Optional[Vector3] = None,
-    ):
-        assert isinstance(image_data_provider, IImageDataLoader)
+    def __init__(self, image_data_loader: IImageDataLoader):
 
-        super().__init__(identifier=identifier, meta_data=meta_data, voxel_size=voxel_size, voxel_spacing=voxel_spacing)
+        super().__init__()
 
-        self._image_data_provider = image_data_provider
+        self._image_data_loader = image_data_loader
 
     def get_image_data(self) -> np.ndarray:
         """Override accessor to retrieve image-data if not already loaded."""
@@ -44,7 +35,7 @@ class LazyLoadedImage(Image):
         if self._image_data is None:
 
             self._set_image_data(
-                self._image_data_provider.load_image_data()
+                self._image_data_loader.load_image_data(self)
             )
 
         return self._image_data
@@ -52,22 +43,13 @@ class LazyLoadedImage(Image):
 
 class LazyLoadedImageSegment(ImageSegment):
 
-    def __init__(
-            self,
-            image,  # type:Image
-            segment_data_loader: IImageSegmentDataLoader,
-            bounding_box: Optional[Tuple[Coordinates3, Coordinates3]],
-            slug: str,
-            identifier: str,
-            color: Optional[Color] = None
-    ):
+    def __init__(self, segment_data_loader: IImageSegmentDataLoader, image: Image, identifier: str):
 
         assert isinstance(segment_data_loader, IImageSegmentDataLoader)
 
-        super().__init__(image, identifier, slug, color=color)
+        super().__init__(image, identifier)
 
         self._segment_data_loader = segment_data_loader
-        self._bounding_box = bounding_box
 
     def get_mask(self) -> np.ndarray:
         """Override accessor to retrieve mask if not already loaded."""
@@ -75,9 +57,7 @@ class LazyLoadedImageSegment(ImageSegment):
         if self._mask is None:
 
             self.set_mask(
-                self._segment_data_loader.load_segment_mask(
-                    self._slug, self._bounding_box
-                )
+                self._segment_data_loader.load_segment_mask(self)
             )
 
         return self._mask
