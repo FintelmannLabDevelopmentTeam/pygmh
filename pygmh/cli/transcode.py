@@ -17,20 +17,20 @@ def main(path: str, target_path: Optional[str], compress: bool):
 
     image = adapter.read(path)
 
-    backup_path = None
+    temporary_target_path = None
     if target_path is None:
 
-        # backup original file
-        backup_path = f"{path}.bak"
-        os.rename(path, backup_path)
+        # write to temporary file fist
+        temporary_target_path = f"{path}.tmp"
 
     # re-write image
-    adapter.write(image, target_path if target_path else path, compress=compress)
+    adapter.write(image, temporary_target_path if temporary_target_path else target_path, compress=compress)
 
-    # delete backup
-    if backup_path:
+    # swap-in file
+    if temporary_target_path:
 
-        os.unlink(backup_path)
+        os.unlink(path)
+        os.rename(temporary_target_path, path)
 
 
 if __name__ == "__main__":
