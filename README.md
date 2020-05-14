@@ -1,5 +1,7 @@
 # PyGMH
 
+![Build status](https://github.com/FintelmannLabDevelopmentTeam/pygmh/workflows/CI/badge.svg)
+
 The *PyGMH* package is the reference implementation of the [*GMH* standard](https://github.com/FintelmannLabDevelopmentTeam/GMH-Spec) in Python.
 
 ## Quickstart
