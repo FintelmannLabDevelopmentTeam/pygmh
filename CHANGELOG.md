@@ -2,6 +2,7 @@
 
 ## [unreleased]
 
+- Chg: Refactored individual cli commands into single `app.py`
 - Add: Alias for `pygmh.persistence.gmh.Adapter` as `pygmh.persistence.GmhAdapter` and `pygmh.persistence.interface.IAdapter` as `pygmh.persistence.Adapter` 
 - Add: Added build status badge to README.md
 
