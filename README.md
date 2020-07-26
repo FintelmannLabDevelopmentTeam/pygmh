@@ -28,3 +28,20 @@ The *PyGMH* package is the reference implementation of the [*GMH* standard](http
     (pygmh-zeOtsN75-py3.7) $ pytest
     ...
     ```
+
+## CLI
+
+The CLI of this package can be invoked using the `app.py` in the project root:
+
+```bash
+(pygmh-zeOtsN75-py3.7) $ python app.py
+Usage: app.py [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  benchmark
+  info
+  transcode
+```
