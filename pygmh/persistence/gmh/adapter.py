@@ -28,7 +28,7 @@ class Adapter(IAdapter):
 
     def read(self, path: str) -> Image:
 
-        self._logger.info("Reading gmh file from: {}".format(path))
+        self._logger.debug("Reading gmh file from: {}".format(path))
 
         assert os.path.isfile(path), "Trying to read gmh file from non-file: {}".format(path)
 
@@ -60,7 +60,7 @@ class Adapter(IAdapter):
 
     def write(self, image: Image, path: str) -> None:
 
-        self._logger.info("Writing image to gmh file under: {}".format(path))
+        self._logger.debug("Writing image to gmh file under: {}".format(path))
 
         assert not os.path.exists(path), "Path already exists"
 

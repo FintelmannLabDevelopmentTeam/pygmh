@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+- Chg: Now logging in level `DEBUG` from persistence adapter 
+
 ## 0.2.0
 
 - Chg: Refactored individual cli commands into single `app.py`
