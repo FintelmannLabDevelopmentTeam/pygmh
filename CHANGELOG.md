@@ -2,7 +2,8 @@
 
 ## [unreleased]
 
-- Chg: Now logging in level `DEBUG` from persistence adapter 
+- Chg: Now logging in level `DEBUG` from persistence adapter
+- Add: Added parameter `overwrite_if_existing` to `pygmh.persistence.IAdapter#write()`
 
 ## 0.2.0
 

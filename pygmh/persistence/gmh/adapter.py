@@ -58,13 +58,17 @@ class Adapter(IAdapter):
 
         return image
 
-    def write(self, image: Image, path: str) -> None:
+    def write(self, image: Image, path: str, *, override_if_existing: bool = False) -> None:
 
         self._logger.debug("Writing image to gmh file under: {}".format(path))
 
-        assert not os.path.exists(path), "Path already exists"
+        if os.path.exists(path) and not override_if_existing:
+            raise ValueError(f"Path does already exist: {path}")
 
-        with tarfile.open(path, "w") as tar_file_handle:
+        temporary_file_path = f"{path}.tmp"
+        assert not os.path.exists(temporary_file_path)
+
+        with tarfile.open(temporary_file_path, "w") as tar_file_handle:
 
             def add_file(name: str, content) -> None:
 
@@ -92,6 +96,11 @@ class Adapter(IAdapter):
                     IMAGE_SEGMENT_MASK_MEMBER_NAME_FORMAT.format(segment_slug),
                     image_segment.get_mask_in_bounding_box().tobytes()
                 )
+
+        # swap written file into target path
+        if os.path.exists(path):
+            os.remove(path)
+        os.rename(temporary_file_path, path)
 
     def _generate_segment_slugs(self, image: Image) -> dict:
 

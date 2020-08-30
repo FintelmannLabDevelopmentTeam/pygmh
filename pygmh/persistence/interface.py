@@ -21,7 +21,7 @@ class IAdapter(ABC):
         pass
 
     @abstractmethod
-    def write(self, image: Image, path: str) -> None:
+    def write(self, image: Image, path: str, *, override_if_existing: bool = False) -> None:
         """Non-parameterized writing of the image to the given fs path.
 
         Writes the given image to the given path.
@@ -30,6 +30,7 @@ class IAdapter(ABC):
         Args:
             image (Image): Image instance to write.
             path (str): Path to write the image to.
+            override_if_existing (bool): Override file if it exists instead of failing.
 
         Returns:
             None
