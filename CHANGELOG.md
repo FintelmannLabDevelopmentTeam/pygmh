@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+- Fix: Corrected package version string in pyproject.toml to match set tag
+
 ## 0.3.0
 
 - Chg: Now logging in level `DEBUG` from persistence adapter
